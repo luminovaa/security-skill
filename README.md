@@ -28,19 +28,49 @@ They do not overlap: `pentest` points at `cve-hunt` instead of re-deriving CVE m
 
 Requires **Node 18+** (global `fetch`, `AbortSignal.timeout`).
 
-### Published — via the skills CLI
+The [`skills`](https://skills.sh) CLI is the package manager for this ecosystem: it clones the repo, finds every `SKILL.md`, and links each one into the agents on the machine.
+
+### 1. Interactive — pick the agents and the skills
 
 ```bash
+npx skills add luminovaa/security-skill
+```
+
+It detects the agents installed on the machine, then asks three things:
+
+| Prompt | What you choose |
+|---|---|
+| **Scope** | project (`./.agents/skills/`) or global (`~/.agents/skills/`) |
+| **Agents** | which agents to link — Claude Code, Codex, Cursor, Cline, Amp, and the rest it detected |
+| **Skills** | `cve-hunt`, `pentest`, or both |
+
+Each skill is copied once under `.agents/skills/<name>` (the universal location) and symlinked into every agent directory you selected, so one install serves all of them.
+
+### 2. Non-interactive — scripted or CI
+
+```bash
+# both skills, global, every detected agent
 npx skills add luminovaa/security-skill -g -y
-```
 
-Installs to `~/.agents/skills/<name>`. To take one skill only:
-
-```bash
+# one skill only
 npx skills add luminovaa/security-skill@cve-hunt -g -y
+
+# project-local (writes ./.agents/skills, useful inside one repo)
+npx skills add luminovaa/security-skill -y
 ```
 
-### From a clone — linked, not copied
+`-g` = global instead of project, `-y` = skip the scope prompt. With no TTY the CLI falls back to **Claude Code + all skills**, which is why a CI log looks like a plain success with no questions.
+
+Where things land:
+
+| Mode | Files | Links |
+|---|---|---|
+| project | `./.agents/skills/<name>` | into each selected agent's project dir |
+| global (`-g`) | `~/.agents/skills/<name>` | into each selected agent's user dir |
+
+> Already installed here? This machine has `~/.agents/skills/cve-hunt` and `pentest` as junctions into a local clone. `npx skills add` expects a clean destination — use `install.ps1` here, and the CLI on any other machine.
+
+### 3. From a clone — for editing the skills
 
 `git pull` then updates the live install, because the skill folders are links into the clone:
 
@@ -58,7 +88,7 @@ cd security-skill
 
 Both scripts refuse to overwrite a real folder at the destination and say what to move.
 
-### Manual
+### 4. Manual
 
 Copy `skills/<name>/` into your agent's skills directory. Nothing else is required — the scripts are the skill.
 
@@ -156,6 +186,7 @@ skills/cve-hunt/    SKILL.md · SOURCES.md · SOURCE-AUDIT.md · cve.mjs · audi
 skills/pentest/     SKILL.md · PLAYBOOK.md · surface.mjs
 tests/smoke.mjs     offline checks (syntax, usage, fixture scan)
 tests/fixtures/     deliberately vulnerable file the audit test scans
+skills.sh.json      repo groupings shown on the skills.sh page
 install.ps1         Windows junction installer
 install.sh          symlink installer
 ```
